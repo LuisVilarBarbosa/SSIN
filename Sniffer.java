@@ -7,6 +7,7 @@ import jpcap.packet.Packet;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Scanner;
 
 public class Sniffer {
     public static final String Filter_IP_ONLY = "ip";
@@ -28,7 +29,20 @@ public class Sniffer {
             System.out.println(i + " -> " + networkInterfaces[i].description);
         System.out.println("-------------------------\n");
         System.out.println("Choose interface (0,1...):");
-        int choice = 1;
+        Scanner scanner = new Scanner(System.in);
+        Integer choice = null;
+        do {
+            String choiceStr = scanner.nextLine();
+            try {
+                choice = Integer.parseInt(choiceStr);
+                if (choice < 0 || choice >= networkInterfaces.length) {
+                    choice = null;
+                    System.out.println("Invalid option.");
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input.");
+            }
+        } while (choice == null);
         System.out.println("Listening on interface -> " + networkInterfaces[choice].description);
         System.out.println("-------------------------\n");
 
