@@ -12,19 +12,7 @@ using System.Threading;
 
 namespace DNS_Attack {
     public class MySocket {
-        // IP packet example: 45001D010008011007F0017F001C1F7C1F7097DEA0450042011008011007F0017F001C1F903502E1111684B120010000016676F6F676C6527074001010029100000000
-        private static string ipHeaderExample = "45001D010008011007F0017F001C1F7C1F7097DE"; // From a real IP packet (that does not contain the 'options' section)
-        private static int hexadecimalRadix = 16;
-        private static IPAddress localhost = IPAddress.Parse("127.0.0.1");
-
-        private static byte[] HexStringToByteArray(string str) {
-            byte[] array = new byte[str.Length / 2];
-            for (int i = 0, j = 0; i < str.Length; i += 2, j++) {
-                string hexByte = str.Substring(i, 2);
-                array[j] = Convert.ToByte(hexByte, hexadecimalRadix);
-            }
-            return array;
-        }
+        private static IPAddress localhost = IPAddress.Loopback;
 
         private static byte[] GenerateUDPHeader(int sourcePort, int destinationPort, int ipPacketLength) {
             int udpHeaderLength = 8;
@@ -42,6 +30,19 @@ namespace DNS_Attack {
             return udpHeader;
         }
 
+        /* Based on:
+         * https://cyb3rspy.wordpress.com/2008/03/27/ip-header-checksum-function-in-c/
+         * https://www.thegeekstuff.com/2012/05/ip-header-checksum/ */
+        private static ushort ComputeIpHeaderChecksum(byte[] header) {
+            int sum = 0;
+            for (int i = 0; i < header.Length; i += 2) {
+                int word16 = (((header[i] << 8)) + (header[i + 1]));
+                sum += (word16 & 0xffff) + (word16 >> 16);  // add carry bits
+            }
+            sum = ~sum;
+            return (ushort)sum;
+        }
+
         private static byte[] GenerateIPHeader(string sourceIP, string destinationIP, int dataLength) {
             string[] sourceIPParts = sourceIP.Split('.');
             string[] destinationIPParts = sourceIP.Split('.');
@@ -49,11 +50,28 @@ namespace DNS_Attack {
                 throw new Exception("Invalid format for source IP or destination IP");
             int ipHeaderLength = 20;
             int ipPacketLength = ipHeaderLength + dataLength;
-            byte[] ipHeader = HexStringToByteArray(ipHeaderExample);
+            byte[] ipHeader = new byte[ipHeaderLength];
             if (ipHeader.Length != ipHeaderLength)
                 throw new Exception("Bug in the code");
+            byte DSCPandECN = 0;    // decided by us
+            byte identification = 1;    // decided by us
+            byte flags = 0;
+            ushort fragmentOffset = 0;
+            byte timeToLive = 64;
+            byte protocol = 17; // UDP
+            byte initialChecksum = 0;
+            ipHeader[0] = Convert.ToByte((4 << 4) + ipHeader.Length / 4);  // IPv4 and Number of 32 bit words
+            ipHeader[1] = DSCPandECN;
             ipHeader[2] = Convert.ToByte(ipPacketLength >> 8);
             ipHeader[3] = Convert.ToByte(ipPacketLength & 0xff);
+            ipHeader[4] = Convert.ToByte(identification >> 8);
+            ipHeader[5] = Convert.ToByte(identification & 0xff);
+            ipHeader[6] = Convert.ToByte((flags << 5) + ((fragmentOffset & 0x1f00) >> 8));
+            ipHeader[7] = Convert.ToByte(fragmentOffset & 0xff);
+            ipHeader[8] = timeToLive;
+            ipHeader[9] = protocol;
+            ipHeader[10] = initialChecksum;
+            ipHeader[11] = initialChecksum;
             ipHeader[12] = Convert.ToByte(int.Parse(sourceIPParts[0]));
             ipHeader[13] = Convert.ToByte(int.Parse(sourceIPParts[1]));
             ipHeader[14] = Convert.ToByte(int.Parse(sourceIPParts[2]));
@@ -62,28 +80,35 @@ namespace DNS_Attack {
             ipHeader[17] = Convert.ToByte(int.Parse(destinationIPParts[1]));
             ipHeader[18] = Convert.ToByte(int.Parse(destinationIPParts[2]));
             ipHeader[19] = Convert.ToByte(int.Parse(destinationIPParts[3]));
+            ushort ipHeaderChecksum = ComputeIpHeaderChecksum(ipHeader);
+            ipHeader[10] = Convert.ToByte(ipHeaderChecksum >> 8);
+            ipHeader[11] = Convert.ToByte(ipHeaderChecksum & 0xff);
             return ipHeader;
         }
 
-        private static byte[] ConcatArrays(byte[] udpHeader, byte[] ipHeader, byte[] data) {
-            byte[] array = new byte[udpHeader.Length + ipHeader.Length + data.Length];
-            Buffer.BlockCopy(udpHeader, 0, array, 0, udpHeader.Length);
-            Buffer.BlockCopy(ipHeader, 0, array, udpHeader.Length, ipHeader.Length);
-            Buffer.BlockCopy(data, 0, array, udpHeader.Length + ipHeader.Length, data.Length);
+        private static byte[] ConcatArrays(byte[] array1, byte[] array2, byte[] array3) {
+            byte[] array = new byte[array1.Length + array2.Length + array3.Length];
+            Buffer.BlockCopy(array1, 0, array, 0, array1.Length);
+            Buffer.BlockCopy(array2, 0, array, array1.Length, array2.Length);
+            Buffer.BlockCopy(array3, 0, array, array1.Length + array2.Length, array3.Length);
             return array;
         }
 
         private static void ShowAsHexadecimalString(byte[] array) {
             for (int i = 0; i < array.Length; ++i)
-                Console.Write("{0:x}", array[i]);
+                Console.Write("{0:x2}", array[i]);
             Console.WriteLine();
         }
 
         public static void SendUDPPacket(string sourceIP, int sourcePort, string destinationIP, int destinationPort, byte[] data) {
-            Socket socket = GenerateSocket(localhost, sourcePort);
-            byte[] ipHeader = GenerateIPHeader(sourceIP, destinationIP, data.Length);
-            byte[] udpHeader = GenerateUDPHeader(sourcePort, destinationPort, ipHeader.Length + data.Length);
-            byte[] toSend = ConcatArrays(udpHeader, ipHeader, data);
+            /* To perform an attack using a fake source IP address, we should use a local IP address
+             * in the following line of code, but the operating system drops IP packets with invalid
+             * source IP addresses, so the source IP needs to be valid, being the best variable to
+             * use in this case. */
+            Socket socket = GenerateSocket(IPAddress.Parse(sourceIP), sourcePort);
+            byte[] udpHeader = GenerateUDPHeader(sourcePort, destinationPort, data.Length);
+            byte[] ipHeader = GenerateIPHeader(sourceIP, destinationIP, udpHeader.Length + data.Length);
+            byte[] toSend = ConcatArrays(ipHeader, udpHeader, data);
             socket.SendTo(toSend, new IPEndPoint(IPAddress.Parse(destinationIP), destinationPort));
         }
 
