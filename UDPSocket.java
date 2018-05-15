@@ -6,10 +6,13 @@ import java.net.SocketException;
 
 public class UDPSocket {
     private final DatagramSocket datagramSocket;
-    private final int arrayLength = 1024 * 4;
+    private static final int arrayLength = 1024 * 4;
+
+    static {
+        System.loadLibrary("MySocket");
+    }
 
     public UDPSocket(int port) throws SocketException {
-        System.loadLibrary("MySocket");
         this.datagramSocket = new DatagramSocket(port);
     }
 
@@ -30,7 +33,7 @@ public class UDPSocket {
         datagramSocket.close();
     }
 
-    public native void SendUDPPacketNative(String sourceIP, int sourcePort, String destinationIP, int destinationPort, byte[] data);
+    public native static void SendUDPPacketNative(String sourceIP, int sourcePort, String destinationIP, int destinationPort, byte[] data);
 
-    public native void ReceiveNative(int port, byte[] buffer);
+    public native static void ReceiveNative(int port, byte[] buffer);
 }
